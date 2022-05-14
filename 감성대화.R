@@ -1,3 +1,5 @@
+# 감정분석모델링을 위한 감정대화분류셋 데이터 가공
+#####################################################
 
 library(dplyr)
 library(readr)
@@ -7,6 +9,12 @@ library(ggplot2)
 
 setwd('C:/Users/admin/Bigdata')
 getwd()
+
+# 태은님 파일 확인
+# data_ex <- read_excel("data/감성대화말뭉치AI데이터_평가용Wave_대본1만문장.xlsx")
+# View(data_ex)
+# nrow(data_ex) # 10000
+# tail(data_ex,50) 
 
 data <- read_excel("data/감성대화말뭉치(최종데이터)_Training.xlsx")
 nrow(data) # 40879
@@ -30,7 +38,7 @@ senti %>% group_by(소분류) %>% count() %>% View()
 senti[duplicated(senti$소분류),]
 senti1 <- senti[!duplicated(senti$소분류),]
 View(senti1)
-write.csv(senti1, "data/감정별소분류.csv")
+# write.csv(senti1, "data/감정별소분류.csv") # 데이터저장완료
 
 # 감정소분류 개별파일 불러오기
 # a- 장은영
@@ -75,7 +83,7 @@ class(senti_class8)
 
 # 여러 개의 데이터 프레임(data.frame) 한 번에 합치기
 # 패키지 설치하기
-install.packages("plyr")
+# install.packages("plyr")
 library(plyr)
 
 senti_data <- join_all(list(senti_class1, senti_class2, senti_class3,senti_class4,
@@ -160,7 +168,7 @@ nrow(gather_data2)# 40879 -> 163516
 # na값 제거 
 sum(is.na(gather_data1$text)) # 25196
 gather_data1 <- gather_data1[!is.na(gather_data1$text),]
-sum(is.na(gather_data1_1$text)) # 0
+sum(is.na(gather_data1$text)) # 0
 nrow(gather_data1)# 74856 -> 224568 -> 199372
 
 sum(is.na(gather_data2$text)) # 49227
@@ -172,9 +180,11 @@ nrow(gather_data2)# 40879 -> 163516 -> 114289
 gather_data3 <- bind_rows(gather_data1,gather_data2)
 nrow(gather_data3) # 313661
 View(gather_data3)
+
 # id, text_category 컬럼 제거
 gather_data3 <- gather_data3[c(1,4)]
 head(gather_data3)
+
 # text 정렬 후 중복데이터 확인
 gather_data3 %>% arrange(text) %>% View()
 
@@ -182,6 +192,7 @@ gather_data3 %>% arrange(text) %>% View()
 sum(duplicated(gather_data3$text)) # [1] 71979
 gather_data4 <- gather_data3[!duplicated(gather_data3$text),]
 View(gather_data4)
+# 중복 text 제거 확인
 sum(duplicated(gather_data4$text)) # [1] 0
 nrow(gather_data4) # 241682
 
@@ -189,12 +200,12 @@ nrow(gather_data4) # 241682
 ###### 감정분류점수.csv 파일 결합
 
 # invalid multibyte string, element 1 에러
-# Sys.setlocale("LC_ALL", "C")
-# Sys.setlocale("LC_ALL", "Korean")
+Sys.setlocale("LC_ALL", "C")
+Sys.setlocale("LC_ALL", "Korean")
 senti_data <- read_csv("data/감정분류점수.csv")
 # 필요없는 첫번째 컬럼 제거
 senti_data <- senti_data[-1]
-senti_data
+View(senti_data)
 
 senti_merge <- merge(gather_data4, senti_data, by="category", all=F)
 nrow(senti_merge) # 241682
@@ -202,5 +213,31 @@ nrow(senti_merge) # 241682
 sum(duplicated(senti_merge$text)) # 0
 View(senti_merge)
 
-write.csv(senti_merge, "data/감정대화말뭉치_training.csv")
+# write.csv(senti_merge, "data/감정대화말뭉치_training.csv") # 파일저장완료
+
+# 카테고리 가난한,불우한 -> 불우한으로 변경
+senti_merge$category <- gsub('가난한, 불우한','불우한', senti_merge$category)
+View(senti_merge)
+# write.csv(senti_merge, "data/감정대화말뭉치_training.csv") # 파일저장완료
+
+
+#####################
+# 은성님 태은님 파일 확인
+
+Sys.setlocale("LC_ALL", "C")
+Sys.setlocale("LC_ALL", "Korean")
+data_ex <- read_csv("data/감정대화말뭉치_Validation.csv")
+data_ex
+nrow(data_ex) # [1] 37870
+sum(is.na(data_ex$text)) # 0
+sum(duplicated(data_ex$text)) # [1] 0
+
+data_ex <- read_csv("data/감성대화말뭉치_원천데이터_전처리1.csv")
+data_ex
+nrow(data_ex) # [1] 28614
+sum(is.na(data_ex$text)) # 28
+sum(duplicated(data_ex$text)) # [1] 646
+
+###################
+
 
