@@ -10,11 +10,6 @@ library(ggplot2)
 setwd('C:/Users/admin/Bigdata')
 getwd()
 
-# 태은님 파일 확인
-# data_ex <- read_excel("data/감성대화말뭉치AI데이터_평가용Wave_대본1만문장.xlsx")
-# View(data_ex)
-# nrow(data_ex) # 10000
-# tail(data_ex,50) 
 
 data <- read_excel("data/감성대화말뭉치(최종데이터)_Training.xlsx")
 nrow(data) # 40879
@@ -143,27 +138,84 @@ head(data3)
 names(data4)
 data3 <- data3 %>% dplyr::rename(category = 감정_소분류)
 data4 <- data4 %>% dplyr::rename(category = 감정_소분류)
-data3
-
-# id 컬럼 생성 : 행별 확인용
-data3 <- data3 %>% dplyr::mutate(id = row_number())
-tail(data3)
-data4 <- data4 %>% dplyr::mutate(id = row_number())
-tail(data4)
 data4
 
-# wide형 -> long형 변환
-library(tidyr)
+# 세로결합 
+gather_data <- bind_rows(data3,data4)
+nrow(gather_data) # 115735
 
-gather_data1 <- data3 %>% gather(key=text_category, value=text, -c(category,id))
-gather_data1 <- gather_data1 %>% arrange(id)
+gather_data %>% arrange(text1) %>% View()
+
+# text 이름 변경
+names(data4)
+gather_data <- gather_data %>% dplyr::rename(text1 = 사람문장1,
+                                             text2 = 사람문장2,
+                                             text3 = 사람문장3,
+                                             text4 = 사람문장4)
+head(gather_data)
+View(gather_data)
+
+# 중복값 제거
+sum(duplicated(gather_data$text1)) # 26835
+
+test <- unique(gather_data) %>% arrange(text1)
+which(duplicated(gather_data))
+# 중복
+nrow(gather_data[which(duplicated(gather_data)),]) #16268
+# 중복아님
+nrow(gather_data[which(!duplicated(gather_data)),]) #99467
+gather_data1 <- gather_data[which(!duplicated(gather_data)),]
 View(gather_data1)
-nrow(gather_data1)# 74856 -> 224568
+gather_data1 %>% arrange(text1) %>% View()
+nrow(gather_data1) # 99467
 
-gather_data2 <- data4 %>% gather(key=text_category, value=text, -c(category,id))
-gather_data2 <- gather_data2 %>% arrange(id)
-View(gather_data2)
-nrow(gather_data2)# 40879 -> 163516
+
+
+###### 감정분류점수.csv 파일 결합
+
+# invalid multibyte string, element 1 에러
+Sys.setlocale("LC_ALL", "C")
+Sys.setlocale("LC_ALL", "Korean")
+senti_data <- read_csv("data/감정분류점수.csv")
+# 필요없는 첫번째 컬럼 제거
+senti_data <- senti_data[-1]
+View(senti_data)
+
+senti_merge <- merge(gather_data1, senti_data, by="category", all=F)
+nrow(senti_merge) # 99467
+
+# 중복값 확인
+senti_merge %>% arrange(text1) %>% View()
+sum(duplicated(senti_merge)) # 0
+
+# write.csv(senti_merge, "data/감정대화말뭉치_training.csv") # 파일저장완료
+
+# 카테고리 가난한,불우한 -> 불우한으로 변경
+senti_merge$category <- gsub('가난한, 불우한','불우한', senti_merge$category)
+View(senti_merge)
+# write.csv(senti_merge, "data/감정대화말뭉치_training.csv") # 파일저장완료
+
+
+
+# # id 컬럼 생성 : 행별 확인용
+# data3 <- data3 %>% dplyr::mutate(id = row_number())
+# tail(data3)
+# data4 <- data4 %>% dplyr::mutate(id = row_number())
+# tail(data4)
+# data4
+# 
+# # wide형 -> long형 변환
+# library(tidyr)
+# 
+# gather_data1 <- data3 %>% gather(key=text_category, value=text, -c(category,id))
+# gather_data1 <- gather_data1 %>% arrange(id)
+# View(gather_data1)
+# nrow(gather_data1)# 74856 -> 224568
+# 
+# gather_data2 <- data4 %>% gather(key=text_category, value=text, -c(category,id))
+# gather_data2 <- gather_data2 %>% arrange(id)
+# View(gather_data2)
+# nrow(gather_data2)# 40879 -> 163516
 
 # na값 제거 
 sum(is.na(gather_data1$text)) # 25196
@@ -218,7 +270,7 @@ View(senti_merge)
 # 카테고리 가난한,불우한 -> 불우한으로 변경
 senti_merge$category <- gsub('가난한, 불우한','불우한', senti_merge$category)
 View(senti_merge)
-# write.csv(senti_merge, "data/감정대화말뭉치_training.csv") # 파일저장완료
+write.csv(senti_merge, "data/감정대화말뭉치_training.csv") # 파일저장완료
 
 
 #####################
